@@ -118,7 +118,7 @@ class WeightForestClassifier(RandomForestClassifier):
         The predicted class probability of the input sample is calculated as
         values weighted to the predicted class probability of the tree in
         the forest.
-        If weight is negative, it is treated as 0 and calculated.
+        A tree with "weight <= 0" is not calculated
         The class probability of a single tree is the fraction of samples of
         the same class in a leaf.
 
@@ -222,15 +222,14 @@ def _accumulate_weight_prediction(predict, X, weight, out, lock):
     """
     This is a utility function for joblib's Parallel.
     """
-    if weight < 0.0:
-        weight = 0.0
-    prediction = predict(X, check_input=False) * weight
-    with lock:
-        if len(out) == 1:
-            out[0] += prediction
-        else:
-            for i in range(len(out)):
-                out[i] += prediction[i]
+    if weight > 0.0:
+        prediction = predict(X, check_input=False) * weight
+        with lock:
+            if len(out) == 1:
+                out[0] += prediction
+            else:
+                for i in range(len(out)):
+                    out[i] += prediction[i]
 
 def _fit_weight(predict, X, y_true, weight, idx, reward, punishment, lock):
     """
